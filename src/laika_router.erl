@@ -78,16 +78,20 @@ recompile_routes() ->
 
 % Callbacks
 
-'51'(_Route, _Vals) ->
+'51'(Route, Vals) ->
+    io:format("in 51 Route is ~p~nVals is ~p~n", [Route, Vals]),
     [<<"51 Welcome to Area 51 👽\r\n"/utf8>>].
 
-'60'(_Route, _Vals)->
+'60'(Route, Vals)->
+    io:format("in 60 Route is ~p~nVals is ~p~n", [Route, Vals]),
     [<<"60 Criminal Code Section 60 Violation 👮\r\n"/utf8>>].
 
-'60 (nonce)'(_Route, _Vals)->
+'60 (nonce)'(Route, Vals)->
+    io:format("in 60 nonce Route is ~p~nVals is ~p~n", [Route, Vals]),
     [<<"60 Criminal Code Section 60 Violation - you're awa the jail ya nonce 🚓\r\n"/utf8>>].
 
-'60 (hacker)'(_Route, _Vals)->
+'60 (hacker)'(Route, Vals)->
+    io:format("in 60 hacker Route is ~p~nVals is ~p~n", [Route, Vals]),
     [<<"60 Criminal Code Section 60 Violation - back off hacker ☠️\r\n"/utf8>>].
 
 init(_Args) ->
