@@ -31,6 +31,9 @@
          get_nonce/2
          ]).
 
+% exported as an aid for developers
+-export([recompile_routes/0]).
+
 % exported for callbacks from within this module
 -export([
          '51'/2,
@@ -68,7 +71,10 @@ dispatch(Route) ->
     apply(M, F, [Route, Vals]).
 
 get_nonce(URL, Id) ->
-    gen_server:call(?MODULE,{get_nonce, {URL, Id}}).
+    gen_server:call(?MODULE, {get_nonce, {URL, Id}}).
+
+recompile_routes() ->
+    gen_server:call(?MODULE, recompile_routes).
 
 % Callbacks
 
