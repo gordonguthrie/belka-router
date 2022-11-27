@@ -148,7 +148,7 @@ match_route([H | T], Route, Salt, Admins) ->
         {match, Vals} ->
             case {Id, Login, IsAdmin} of
                 {no_identity, login, _} ->
-                    {{router, '60'}, []};
+                    {{laika_router, '60'}, []};
                 {_, login, admin} ->
                     case check_admin(Admins, Id) of
                         {invalid, Error} ->
