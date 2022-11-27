@@ -2,10 +2,11 @@
 %% ex: ts=4 sw=4 et
 
 %%%-------------------------------------------------------------------
-%% @doc router
+%% @doc laika_router
 %%
-%% the router is used to match incoming Gemini URLs to resources
-%% it picks up its routes from the modules routes.erl
+%% the laika router is used in the Laika Gemini servrer to match incoming
+% Gemini URLs to resources
+%% it picks up its routes from a module passed in as an environment variable
 %%
 %% @end
 %%%-------------------------------------------------------------------
@@ -63,20 +64,16 @@ dispatch(Route) ->
 
 % Callbacks
 
-'51'(Route, Vals) ->
-    io:format("in 51 Route is ~p Vals is ~p~n", [Route, Vals]),
+'51'(_Route, _Vals) ->
     [<<"51 Welcome to Area 51 👽\r\n"/utf8>>].
 
-'60'(Route, Vals)->
-    io:format("in 60 Route is ~p Vals is ~p~n", [Route, Vals]),
+'60'(_Route, _Vals)->
     [<<"60 Criminal Code Section 60 Violation 👮\r\n"/utf8>>].
 
-'60 (nonce)'(Route, Vals)->
-    io:format("in 60 nonce Route is ~p Vals is ~p~n", [Route, Vals]),
-    [<<"60 Criminal Code Section 60 Violation - you're goin to jail ya nonce 🚓\r\n"/utf8>>].
+'60 (nonce)'(_Route, _Vals)->
+    [<<"60 Criminal Code Section 60 Violation - you're awa the jail ya nonce 🚓\r\n"/utf8>>].
 
-'60 (hacker)'(Route, Vals)->
-    io:format("in 60 hacker Route is ~p Vals is ~p~n", [Route, Vals]),
+'60 (hacker)'(_Route, _Vals)->
     [<<"60 Criminal Code Section 60 Violation - back off hacker ☠️\r\n"/utf8>>].
 
 init(_Args) ->
@@ -114,7 +111,7 @@ code_change(_OldVsn, State, _Extra) ->
 get_dispatch(Route, Routes, Salt, Admins) ->
     match_route(Routes, Route, Salt, Admins).
 
-match_route([], _, _Salt, _Admins) -> {{router, '51'}, []};
+match_route([], _, _Salt, _Admins) -> {{laika_router, '51'}, []};
 match_route([H | T], Route, Salt, Admins) ->
     #{path := GotPath, id := Id} = Route,
     #{path := ExpPath, needs_login := Login, is_admin := IsAdmin, dispatch := MF} = H,
@@ -142,7 +139,7 @@ match_route([H | T], Route, Salt, Admins) ->
 handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins) ->
     case Id of
         no_identity ->
-            {{router, '60'}, []};
+            {{laika_router, '60'}, []};
         _ ->
             [Nonce | Rest] = lists:reverse(GotPath),
             OrigPath = string:join(lists:reverse(Rest), "/"),
@@ -161,12 +158,12 @@ handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins) ->
                             end
                     end;
                 _ ->
-                    {{router, '60 (nonce)'}, []}
+                    {{laika_router, '60 (nonce)'}, []}
             end
     end.
 
 
-check_admin([],       _Id) -> {invalid, {{router, '60 (hacker)'}, []}};
+check_admin([],       _Id) -> {invalid, {{laika_router, '60 (hacker)'}, []}};
 check_admin([Id | _T], Id) -> is_admin;
 check_admin([_H | T],  Id) -> check_admin(T, Id).
 
