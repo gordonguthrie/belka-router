@@ -101,6 +101,13 @@ init(_Args) ->
                 salt   = Salt,
                 admins = Admins}}.
 
+handle_call(recompile_routes, _From, State) ->
+    {ok, {M, F}} = application:get_env(laika_router, routes),
+    Routes = apply(M, F, []),
+    CompiledRoutes = compile_routes(Routes),
+    NewState = State#state{routes = CompiledRoutes},
+    {reply, ok, NewState};
+
 handle_call({get_nonce, {URL, Id}}, _From, State) ->
     Salt = State#state.salt,
     Nonce = make_nonce(URL, Id, Salt),
