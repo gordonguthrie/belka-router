@@ -58,9 +58,7 @@ start_link(Args, Opts) ->
     gen_server:start_link(?MODULE, Args, Opts).
 
 dispatch(Route) ->
-    io:format("in laika_router:dispatch with Route of ~p~n", [Route]),
     {{M, F}, Vals} = gen_server:call(?MODULE, {route, Route}),
-    io:format("Results of dispatch are {~p, ~p} ~p~n", [M, F, Vals]),
     apply(M, F, [Route, Vals]).
 
 % Callbacks
