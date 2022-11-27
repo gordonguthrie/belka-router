@@ -80,7 +80,7 @@ dispatch(Route) ->
     [<<"60 Criminal Code Section 60 Violation - back off hacker ☠️\r\n"/utf8>>].
 
 init(_Args) ->
-    {ok, {M, F}} = application:get_env(laika_router, salt),
+    {ok, {M, F}} = application:get_env(laika_router, routes),
     {ok, Salt}   = application:get_env(laika_router, salt),
     {ok, Admins} = application:get_env(laika_router, admins),
     true = register(?MODULE, self()),
