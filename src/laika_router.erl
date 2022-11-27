@@ -109,6 +109,7 @@ handle_call(recompile_routes, _From, State) ->
     {ok, {M, F}} = application:get_env(laika_router, routes),
     Routes = apply(M, F, []),
     CompiledRoutes = compile_routes(Routes),
+    io:format("Recompiled Routes are ~p~n", [CompiledRoutes]),
     NewState = State#state{routes = CompiledRoutes},
     {reply, ok, NewState};
 
