@@ -1,0 +1,15 @@
+{application, laika_router,
+ [{description, "An URL router for the Laika Gemini server"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {licenses, ["GNU GPL V3"]},
+  {links, []}
+ ]}.
