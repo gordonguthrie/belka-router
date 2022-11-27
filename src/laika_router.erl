@@ -20,7 +20,7 @@
 -export([start_link/0, start_link/1, start_link/2]).
 -export([start_link_local/0, start_link_local/1, start_link_local/2]).
 
-% Callbacks
+% API Callbacks
 -export([init/1,
          handle_call/3,
          handle_cast/2,
@@ -28,6 +28,11 @@
          terminate/2,
          code_change/3,
          dispatch/1,
+         get_nonce/2
+         ]).
+
+% exported for callbacks from within this module
+-export([
          '51'/2,
          '60'/2,
          '60 (nonce)'/2,
@@ -62,6 +67,9 @@ dispatch(Route) ->
     {{M, F}, Vals} = gen_server:call(?MODULE, {route, Route}),
     apply(M, F, [Route, Vals]).
 
+get_nonce(URL, Id) ->
+    gen_server:call(?MODULE,{get_nonce, {URL, Id}}).
+
 % Callbacks
 
 '51'(_Route, _Vals) ->
@@ -87,6 +95,10 @@ init(_Args) ->
                 salt   = Salt,
                 admins = Admins}}.
 
+handle_call({get_nonce, {URL, Id}}, _From, State) ->
+    Salt = State#state.salt,
+    Nonce = make_nonce(URL, Id, Salt),
+    {reply, Nonce, State};
 handle_call({route, Route}, _From, State) ->
     Routes = State#state.routes,
     Salt = State#state.salt,
