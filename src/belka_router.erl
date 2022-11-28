@@ -2,16 +2,16 @@
 %% ex: ts=4 sw=4 et
 
 %%%-------------------------------------------------------------------
-%% @doc laika_router
+%% @doc belka_router
 %%
-%% the laika router is used in the Laika Gemini servrer to match incoming
+%% the belka router is used in the Laika Gemini servrer to match incoming
 % Gemini URLs to resources
 %% it picks up its routes from a module passed in as an environment variable
 %%
 %% @end
 %%%-------------------------------------------------------------------
 
--module(laika_router).
+-module(belka_router).
 
 % http://erlang.org/doc/design_principles/gen_server_concepts.html
 -behaviour(gen_server).
@@ -95,9 +95,9 @@ recompile_routes() ->
     [<<"60 Criminal Code Section 60 Violation - back off hacker ☠️\r\n"/utf8>>].
 
 init(_Args) ->
-    {ok, {M, F}} = application:get_env(laika_router, routes),
-    {ok, Salt}   = application:get_env(laika_router, salt),
-    {ok, Admins} = application:get_env(laika_router, admins),
+    {ok, {M, F}} = application:get_env(belka_router, routes),
+    {ok, Salt}   = application:get_env(belka_router, salt),
+    {ok, Admins} = application:get_env(belka_router, admins),
     true = register(?MODULE, self()),
     Routes = apply(M, F, []),
     CompiledRoutes = compile_routes(Routes),
@@ -106,7 +106,7 @@ init(_Args) ->
                 admins = Admins}}.
 
 handle_call(recompile_routes, _From, State) ->
-    {ok, {M, F}} = application:get_env(laika_router, routes),
+    {ok, {M, F}} = application:get_env(belka_router, routes),
     Routes = apply(M, F, []),
     CompiledRoutes = compile_routes(Routes),
     io:format("Recompiled Routes are ~p~n", [CompiledRoutes]),
@@ -141,7 +141,7 @@ code_change(_OldVsn, State, _Extra) ->
 get_dispatch(Route, Routes, Salt, Admins) ->
     match_route(Routes, Route, Salt, Admins).
 
-match_route([], _, _Salt, _Admins) -> {{laika_router, '51'}, []};
+match_route([], _, _Salt, _Admins) -> {{belka_router, '51'}, []};
 match_route([H | T], Route, Salt, Admins) ->
     #{path := GotPath, id := Id} = Route,
     #{path := ExpPath, needs_login := Login, is_admin := IsAdmin, dispatch := MF} = H,
@@ -153,7 +153,7 @@ match_route([H | T], Route, Salt, Admins) ->
         {match, Vals} ->
             case {Id, Login, IsAdmin} of
                 {no_identity, login, _} ->
-                    {{laika_router, '60'}, []};
+                    {{belka_router, '60'}, []};
                 {_, login, admin} ->
                     case check_admin(Admins, Id) of
                         {invalid, Error} ->
@@ -169,7 +169,7 @@ match_route([H | T], Route, Salt, Admins) ->
 handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins) ->
     case Id of
         no_identity ->
-            {{laika_router, '60'}, []};
+            {{belka_router, '60'}, []};
         _ ->
             [Nonce | Rest] = lists:reverse(GotPath),
             OrigPath = string:join(lists:reverse(Rest), "/"),
@@ -188,12 +188,12 @@ handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins) ->
                             end
                     end;
                 _ ->
-                    {{laika_router, '60 (nonce)'}, []}
+                    {{belka_router, '60 (nonce)'}, []}
             end
     end.
 
 
-check_admin([],       _Id) -> {invalid, {{laika_router, '60 (hacker)'}, []}};
+check_admin([],       _Id) -> {invalid, {{belka_router, '60 (hacker)'}, []}};
 check_admin([Id | _T], Id) -> is_admin;
 check_admin([_H | T],  Id) -> check_admin(T, Id).
 

@@ -1,5 +1,5 @@
-{application, laika_router,
- [{description, "An URL router for the Laika Gemini server"},
+{application, belka_router,
+ [{description, "An URL router for the Belka Gemini server"},
   {vsn, "0.1.0"},
   {registered, []},
   {mod, []},
