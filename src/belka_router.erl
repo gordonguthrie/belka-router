@@ -4,8 +4,9 @@
 %%%-------------------------------------------------------------------
 %% @doc belka_router
 %%
-%% the belka router is used in the Laika Gemini servrer to match incoming
+%% the belka router is used in the Belka Gemini servrer to match incoming
 % Gemini URLs to resources
+%%
 %% it picks up its routes from a module passed in as an environment variable
 %%
 %% @end
