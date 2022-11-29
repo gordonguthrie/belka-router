@@ -109,7 +109,6 @@ init(_Args) ->
     {ok, {M, F}} = application:get_env(belka_router, routes),
     {ok, Salt}   = application:get_env(belka_router, salt),
     {ok, Admins} = application:get_env(belka_router, admins),
-    true = register(?MODULE, self()),
     Routes = apply(M, F, []),
     CompiledRoutes = compile_routes(Routes),
     {ok, #state{routes = CompiledRoutes,
