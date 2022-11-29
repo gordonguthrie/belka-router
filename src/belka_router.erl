@@ -22,7 +22,8 @@
 -export([start_link_local/0, start_link_local/1, start_link_local/2]).
 
 % API Callbacks
--export([init/1,
+-export([
+         init/1,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
@@ -33,7 +34,10 @@
          ]).
 
 % exported as an aid for developers
--export([recompile_routes/0]).
+-export([
+         recompile_routes/0,
+         toggle_debug/0
+         ]).
 
 % exported for callbacks from within this module
 -export([
@@ -44,7 +48,7 @@
          make_nonce/3
          ]).
 
--record(state, {routes = [], salt = "", admins = []}).
+-record(state, {routes = [], salt = "", admins = [], debug = false}).
 
 % API
 
@@ -74,8 +78,13 @@ dispatch(Route) ->
 get_nonce(URL, Id) ->
     gen_server:call(?MODULE, {get_nonce, {URL, Id}}).
 
+% developer help API
+
 recompile_routes() ->
     gen_server:call(?MODULE, recompile_routes).
+
+toggle_debug() ->
+    gen_server:call(?MODULE, toggle_debug).
 
 % Callbacks
 
@@ -96,6 +105,7 @@ recompile_routes() ->
     [<<"60 Criminal Code Section 60 Violation - back off hacker ☠️\r\n"/utf8>>].
 
 init(_Args) ->
+    true = register(?MODULE, self()),
     {ok, {M, F}} = application:get_env(belka_router, routes),
     {ok, Salt}   = application:get_env(belka_router, salt),
     {ok, Admins} = application:get_env(belka_router, admins),
@@ -105,6 +115,13 @@ init(_Args) ->
     {ok, #state{routes = CompiledRoutes,
                 salt   = Salt,
                 admins = Admins}}.
+
+handle_call(toggle_debug, _From, State) ->
+    NewState = case State#state.debug of
+        true  -> State#state{debug = false};
+        false -> State#state{debug = true}
+    end,
+    {reply, ok, NewState};
 
 handle_call(recompile_routes, _From, State) ->
     {ok, {M, F}} = application:get_env(belka_router, routes),
@@ -117,12 +134,15 @@ handle_call(recompile_routes, _From, State) ->
 handle_call({get_nonce, {URL, Id}}, _From, State) ->
     Salt = State#state.salt,
     Nonce = make_nonce(URL, Id, Salt),
+    debug(State, "URL is ~p Nonce is ~p~n", [URL, Nonce]),
     {reply, Nonce, State};
 handle_call({route, Route}, _From, State) ->
     Routes = State#state.routes,
     Salt = State#state.salt,
     Admins = State#state.admins,
-    Reply = get_dispatch(Route, Routes, Salt, Admins),
+    debug(State, "handling route for ~p~n", [Route]),
+    Reply = get_dispatch(Route, Routes, Salt, Admins, State#state.debug),
+    debug(State, "Reply is ~p~n", [Reply]),
     {reply, Reply, State}.
 
 handle_cast(_Msg, State) ->
@@ -139,52 +159,74 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 
-get_dispatch(Route, Routes, Salt, Admins) ->
-    match_route(Routes, Route, Salt, Admins).
+debug(false,                 _, _)       -> ok;
+debug(#state{debug = false}, _, _)       -> ok;
+debug(_,                     Text, Args) -> io:format(Text, Args).
 
-match_route([], _, _Salt, _Admins) -> {{belka_router, '51'}, []};
-match_route([H | T], Route, Salt, Admins) ->
+get_dispatch(Route, Routes, Salt, Admins, Debug) ->
+    match_route(Routes, Route, Salt, Admins, Debug).
+
+match_route([], _, _Salt, _Admins, Debug) ->
+    debug(Debug, "no routes match 51~n", []),
+    {{belka_router, '51'}, []};
+match_route([H | T], Route, Salt, Admins, Debug) ->
     #{path := GotPath, id := Id} = Route,
     #{path := ExpPath, needs_login := Login, is_admin := IsAdmin, dispatch := MF} = H,
+    debug(Debug, "testing ~p against ~p~n", [GotPath, ExpPath]),
+    debug(Debug, "needs login? ~p is_admin? ~p dispatch ~p~n", [Login, IsAdmin, MF]),
     case match_path(GotPath, ExpPath, []) of
         no_match  ->
-            match_route(T, Route, Salt, Admins);
+            debug(Debug, "no route, try next~n", []),
+            match_route(T, Route, Salt, Admins, Debug);
         {check_nonce, Vals} ->
-            handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins);
+            debug(Debug, "check the nonce~n", []),
+            handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins, Debug);
         {match, Vals} ->
+            debug(Debug, "got a match with ~p~n", [Vals]),
             case {Id, Login, IsAdmin} of
                 {no_identity, login, _} ->
+                    debug(Debug, "no identity - fail 60~n", []),
                     {{belka_router, '60'}, []};
                 {_, login, admin} ->
+                    debug(Debug, "check admin~n", []),
                     case check_admin(Admins, Id) of
                         {invalid, Error} ->
+                            debug(Debug, "not admin - fail 60~n", []),
                             Error;
                         _ ->
+                            debug(Debug, "all good for admin dispatch ~p ~p~n", [MF, Vals]),
                             {MF, Vals}
                     end;
                 {_, _, user} ->
+                    debug(Debug, "all good for users dispatch ~p ~p~n", [MF, Vals]),
                     {MF, Vals}
             end
     end.
 
-handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins) ->
+handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins, Debug) ->
     case Id of
         no_identity ->
+            debug(Debug, "nonce out - not logged in~n", []),
             {{belka_router, '60'}, []};
         _ ->
             [Nonce | Rest] = lists:reverse(GotPath),
             OrigPath = string:join(lists:reverse(Rest), "/"),
             ExpNonce = make_nonce(OrigPath, Id, Salt),
+            debug(Debug, "Nonce is ~p ExpNonce is ~p~n", [Nonce, ExpNonce]),
             case Nonce of
                 ExpNonce ->
                     case IsAdmin of
                         user ->
+                            debug(Debug, "Admin not required, nonce good~n", []),
                             {MF, Vals};
                         admin ->
+                            debug(Debug, "Check admin~n", []),
                             case check_admin(Admins, Id) of
                                 {invalid, Error} ->
+                                    debug(Debug, "Not admin ~p~n", [Error]),
                                     Error;
                                 _ ->
+                                    debug(Debug, "Is admin dispatch ~p~n", [MF, Vals]),
                                     {MF, Vals}
                             end
                     end;
