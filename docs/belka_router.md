@@ -1,23 +1,39 @@
-%% -*- erlang-indent-level: 4;indent-tabs-mode: nil -*-
-%% ex: ts=4 sw=4 et
+-*- erlang-indent-level: 4;indent-tabs-mode: nil -*-
+ex: ts=4 sw=4 et
 
-%% the belka router is used in the Belka Gemini server to match incoming
-% Gemini URLs to resources
-%%
-%% it picks up its routes from a module passed in as an environment variable
+the belka router is used in the Belka Gemini server to match incoming
+
+Gemini URLs to resources
+
+
+it picks up its routes from a module passed in as an environment variable
+
+```erlang
 
 
 
 -module(belka_router).
 
-% http://erlang.org/doc/design_principles/gen_server_concepts.html
+```
+
+http://erlang.org/doc/design_principles/gen_server_concepts.html
+
+```erlang
 -behaviour(gen_server).
 
-% # API for OTP
+```
+
+# API for OTP
+
+```erlang
 -export([start_link/0, start_link/1, start_link/2]).
 -export([start_link_local/0, start_link_local/1, start_link_local/2]).
 
-% OTP API Callbacks
+```
+
+OTP API Callbacks
+
+```erlang
 -export([
          init/1,
          handle_call/3,
@@ -27,20 +43,32 @@
          code_change/3
          ]).
 
-% API
+```
+
+API
+
+```erlang
 -export([
          dispatch/1,
          get_nonce/2
          ]).
 
-% # Developers API (not for production use)
-% When you are writing routes and building an app it is useful to be able to edit things on the fly. On startup the routing server
+```
+
+# Developers API (not for production use)
+When you are writing routes and building an app it is useful to be able to edit things on the fly. On startup the routing server
+
+```erlang
 -export([
          recompile_routes/0,
          toggle_debug/0
          ]).
 
-% exported for callbacks from within this module
+```
+
+exported for callbacks from within this module
+
+```erlang
 -export([
          '51'/2,
          '60'/2,
@@ -51,9 +79,13 @@
 
 -record(state, {routes = [], salt = "", admins = [], debug = false}).
 
-% OTP API
+```
 
-% see: http://erlang.org/doc/man/gen_server.html#start_link-3
+OTP API
+
+see: http://erlang.org/doc/man/gen_server.html#start_link-3
+
+```erlang
 start_link_local() ->
     start_link_local(#{}).
 
@@ -72,16 +104,24 @@ start_link(Args) ->
 start_link(Args, Opts) ->
     gen_server:start_link(?MODULE, Args, Opts).
 
-% # Normal Usage API
+```
+
+# Normal Usage API
+
+```erlang
 
 dispatch(Route) ->
-    {{M, F}, Vals} = gen_server:call(?MODULE, {route, Route}),
+    { {M, F}, Vals} = gen_server:call(?MODULE, {route, Route}),
     apply(M, F, [Route, Vals]).
 
 get_nonce(URL, Id) ->
     gen_server:call(?MODULE, {get_nonce, {URL, Id}}).
 
-% developer help API
+```
+
+developer help API
+
+```erlang
 
 recompile_routes() ->
     gen_server:call(?MODULE, recompile_routes).
@@ -89,7 +129,11 @@ recompile_routes() ->
 toggle_debug() ->
     gen_server:call(?MODULE, toggle_debug).
 
-% Callbacks
+```
+
+Callbacks
+
+```erlang
 
 '51'(Route, Vals) ->
     io:format("in 51 Route is ~p~nVals is ~p~n", [Route, Vals]),
@@ -159,7 +203,11 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-%% Internal functions
+```
+
+Internal functions
+
+```erlang
 
 debug(false,                 _, _)       -> ok;
 debug(#state{debug = false}, _, _)       -> ok;
@@ -170,7 +218,7 @@ get_dispatch(Route, Routes, Salt, Admins, Debug) ->
 
 match_route([], _, _Salt, _Admins, Debug) ->
     debug(Debug, "no routes match 51~n", []),
-    {{belka_router, '51'}, []};
+    { {belka_router, '51'}, []};
 match_route([H | T], Route, Salt, Admins, Debug) ->
     #{path := GotPath, id := Id} = Route,
     #{path := ExpPath, needs_login := Login, is_admin := IsAdmin, dispatch := MF} = H,
@@ -188,7 +236,7 @@ match_route([H | T], Route, Salt, Admins, Debug) ->
             case {Id, Login, IsAdmin} of
                 {no_identity, login, _} ->
                     debug(Debug, "no identity - fail 60~n", []),
-                    {{belka_router, '60'}, []};
+                    { {belka_router, '60'}, []};
                 {_, login, admin} ->
                     debug(Debug, "check admin~n", []),
                     case check_admin(Admins, Id) of
@@ -209,7 +257,7 @@ handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins, Debug) ->
     case Id of
         no_identity ->
             debug(Debug, "nonce out - not logged in~n", []),
-            {{belka_router, '60'}, []};
+            { {belka_router, '60'}, []};
         _ ->
             [Nonce | Rest] = lists:reverse(GotPath),
             OrigPath = string:join(lists:reverse(Rest), "/"),
@@ -233,12 +281,12 @@ handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins, Debug) ->
                             end
                     end;
                 _ ->
-                    {{belka_router, '60 (nonce)'}, []}
+                    { {belka_router, '60 (nonce)'}, []}
             end
     end.
 
 
-check_admin([],       _Id) -> {invalid, {{belka_router, '60 (hacker)'}, []}};
+check_admin([],       _Id) -> {invalid, { {belka_router, '60 (hacker)'}, []}};
 check_admin([Id | _T], Id) -> is_admin;
 check_admin([_H | T],  Id) -> check_admin(T, Id).
 
@@ -271,3 +319,4 @@ make_nonce(URL, #{key := K}, Salt) ->
     Nonce = crypto:hash(md5, list_to_binary([Salt, URL, integer_to_list(K)])),
     SafeNonce = binary:encode_hex(Nonce),
     binary_to_list(SafeNonce).
+```
