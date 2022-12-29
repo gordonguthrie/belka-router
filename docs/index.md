@@ -64,6 +64,7 @@ A router is a bit of code that processes paths in URL. It takes the path, applie
        |                     please serve this response |                                                  |               |             |
        |<-----------------------------------------------|                                                  |               |             |
        |                                                |                                                  |               |             |
+```
 
 When the belka server receives a `gemini://` request it
 

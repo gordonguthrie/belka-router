@@ -66,6 +66,7 @@
 %        |                     please serve this response |                                                  |               |             |
 %        |<-----------------------------------------------|                                                  |               |             |
 %        |                                                |                                                  |               |             |
+%```
 
 % When the belka server receives a `gemini://` request it
 
