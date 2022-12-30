@@ -4,7 +4,7 @@
 
 % A router is a bit of code that processes paths in URL. It takes the path, applies some rules to it and binds it to a function.
 
-% This application takes this data struture defined in the module `example_routes`:
+% This application takes this data structure defined in the module `example_routes`:
 
 {"/home/:user",  ?USERLOGIN,   {example_handlers, home}},
 

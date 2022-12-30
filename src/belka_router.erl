@@ -1,23 +1,20 @@
 %% -*- erlang-indent-level: 4;indent-tabs-mode: nil -*-
 %% ex: ts=4 sw=4 et
 
-%% the belka router is used in the Belka Gemini server to match incoming
-% Gemini URLs to resources
-%%
-%% it picks up its routes from a module passed in as an environment variable
-
-
+%% # Overview
+%% The belka router is used in the Belka Gemini server to match incoming Gemini URLs to resources. It picks up its routes from a module passed in as an environment variable
 
 -module(belka_router).
 
-% http://erlang.org/doc/design_principles/gen_server_concepts.html
+% It is an Erlang/OTP Gen Server
+% [Erlang/OTP Gen Servers](http://erlang.org/doc/design_principles/gen_server_concepts.html)
 -behaviour(gen_server).
 
-% # API for OTP
+% ## API for OTP declarations
 -export([start_link/0, start_link/1, start_link/2]).
 -export([start_link_local/0, start_link_local/1, start_link_local/2]).
 
-% OTP API Callbacks
+% ## OTP API Callbacks declarations
 -export([
          init/1,
          handle_call/3,
@@ -27,20 +24,21 @@
          code_change/3
          ]).
 
-% API
+% ## Normal Usage API v
 -export([
          dispatch/1,
          get_nonce/2
          ]).
 
-% # Developers API (not for production use)
+% ## Developers API declarations (not for production use)
 % When you are writing routes and building an app it is useful to be able to edit things on the fly. On startup the routing server
 -export([
          recompile_routes/0,
          toggle_debug/0
          ]).
 
-% exported for callbacks from within this module
+% ## Callbacks API declarations
+% Exported for callbacks from within this module
 -export([
          '51'/2,
          '60'/2,
@@ -48,6 +46,8 @@
          '60 (hacker)'/2,
          make_nonce/3
          ]).
+
+% The state that the gen server stores.
 
 -record(state, {routes = [], salt = "", admins = [], debug = false}).
 
@@ -177,7 +177,7 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-% standard do nothing on terminate or code reload
+% Standard do nothing on terminate or code reload
 
 terminate(_Reason, _State) ->
     ok.
@@ -185,7 +185,7 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-%% Internal functions
+%% ## Internal functions
 
 debug(false,                 _, _)       -> ok;
 debug(#state{debug = false}, _, _)       -> ok;
@@ -197,8 +197,11 @@ get_dispatch(Route, Routes, Salt, Admins, Debug) ->
 % This function is the heavy lifting of the router. An incoming message which has had its URL parsed down to components is checked in turn against each route defined in the list of routes. There are three exit routes:
 %
 % * a path can match perfectly - exit with a handler
-% * a path can match but some other attribute is wrong (eg good path, but not logged in, good path but not administrator, good path but bad nonce) in which case the search ends with an error
-% * no paths match in which case an ***Aread `51`*** error is thrown
+% * a path can match but some other attribute is wrong in which case the search ends with an error, eg:
+%       * good path, but not logged in
+%       * good path but not administrator
+%       * good path but bad nonce
+% * no paths match in which case an ***Area `51`*** error is thrown
 % ^
 
 match_route([], _, _Salt, _Admins, Debug) ->
@@ -242,7 +245,7 @@ match_route([H | T], Route, Salt, Admins, Debug) ->
 %
 % * the path matches outright
 % * the path matches subject to nonce checks
-% * the path doens't match outwright
+% * the path doesn't match outright
 % ^
 % It descends the segments in the path and match definitions from the top.
 
@@ -257,7 +260,7 @@ match_path(_,         _,                _Acc) -> no_match.
 % * normal user nonces
 % * admin user nonces
 % ^
-% So this function has to peform the `is_admin` check too
+% So this function has to perform the `is_admin` check too
 
 handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins, Debug) ->
     case Id of

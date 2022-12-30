@@ -1,29 +1,24 @@
 -*- erlang-indent-level: 4;indent-tabs-mode: nil -*-
 ex: ts=4 sw=4 et
 
-the belka router is used in the Belka Gemini server to match incoming
-
-Gemini URLs to resources
-
-
-it picks up its routes from a module passed in as an environment variable
+# Overview
+The belka router is used in the Belka Gemini server to match incoming Gemini URLs to resources. It picks up its routes from a module passed in as an environment variable
 
 ```erlang
-
-
 
 -module(belka_router).
 
 ```
 
-http://erlang.org/doc/design_principles/gen_server_concepts.html
+It is an Erlang/OTP Gen Server
+[Erlang/OTP Gen Servers](http://erlang.org/doc/design_principles/gen_server_concepts.html)
 
 ```erlang
 -behaviour(gen_server).
 
 ```
 
-# API for OTP
+## API for OTP declarations
 
 ```erlang
 -export([start_link/0, start_link/1, start_link/2]).
@@ -31,7 +26,7 @@ http://erlang.org/doc/design_principles/gen_server_concepts.html
 
 ```
 
-OTP API Callbacks
+## OTP API Callbacks declarations
 
 ```erlang
 -export([
@@ -45,7 +40,7 @@ OTP API Callbacks
 
 ```
 
-API
+## Normal Usage API v
 
 ```erlang
 -export([
@@ -55,7 +50,7 @@ API
 
 ```
 
-# Developers API (not for production use)
+## Developers API declarations (not for production use)
 When you are writing routes and building an app it is useful to be able to edit things on the fly. On startup the routing server
 
 ```erlang
@@ -66,7 +61,8 @@ When you are writing routes and building an app it is useful to be able to edit 
 
 ```
 
-exported for callbacks from within this module
+## Callbacks API declarations
+Exported for callbacks from within this module
 
 ```erlang
 -export([
@@ -76,6 +72,12 @@ exported for callbacks from within this module
          '60 (hacker)'/2,
          make_nonce/3
          ]).
+
+```
+
+The state that the gen server stores.
+
+```erlang
 
 -record(state, {routes = [], salt = "", admins = [], debug = false}).
 
@@ -239,7 +241,7 @@ handle_info(_Info, State) ->
 
 ```
 
-standard do nothing on terminate or code reload
+Standard do nothing on terminate or code reload
 
 ```erlang
 
@@ -251,7 +253,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 ```
 
-Internal functions
+## Internal functions
 
 ```erlang
 
@@ -267,8 +269,11 @@ get_dispatch(Route, Routes, Salt, Admins, Debug) ->
 This function is the heavy lifting of the router. An incoming message which has had its URL parsed down to components is checked in turn against each route defined in the list of routes. There are three exit routes:
 
 * a path can match perfectly - exit with a handler
-* a path can match but some other attribute is wrong (eg good path, but not logged in, good path but not administrator, good path but bad nonce) in which case the search ends with an error
-* no paths match in which case an ***Aread `51`*** error is thrown
+* a path can match but some other attribute is wrong in which case the search ends with an error, eg:
+      * good path, but not logged in
+      * good path but not administrator
+      * good path but bad nonce
+* no paths match in which case an ***Area `51`*** error is thrown
 ^
 
 ```erlang
@@ -316,7 +321,7 @@ The `match_path` function checks if:
 
 * the path matches outright
 * the path matches subject to nonce checks
-* the path doens't match outwright
+* the path doesn't match outright
 ^
 It descends the segments in the path and match definitions from the top.
 
@@ -335,7 +340,7 @@ There are two sorts of nonce checks:
 * normal user nonces
 * admin user nonces
 ^
-So this function has to peform the `is_admin` check too
+So this function has to perform the `is_admin` check too
 
 ```erlang
 
