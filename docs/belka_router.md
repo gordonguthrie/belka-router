@@ -40,7 +40,7 @@ It is an Erlang/OTP Gen Server
 
 ```
 
-## Normal Usage API v
+## Normal Usage API declarations
 
 ```erlang
 -export([
@@ -51,7 +51,6 @@ It is an Erlang/OTP Gen Server
 ```
 
 ## Developers API declarations (not for production use)
-When you are writing routes and building an app it is useful to be able to edit things on the fly. On startup the routing server
 
 ```erlang
 -export([
@@ -111,7 +110,7 @@ start_link(Args, Opts) ->
 
 We do two things in normal usage in our app:
 
-* when the Belka server gets a `gemini://` request in, it asks the router what functions we should call to handle the request with `dispatch`
+* when the Belka server gets a `gemini://` request in, it asks the router what functions we should call to handle the request with `dispatch`. The dispatch function makes that call and the runs the Kernel function `apply` with the module name, function name and arguments.
 * when we need to create a URL with a valid nonce, or check that the nonce supplied is valid we have to request that the router generates a nonce.
 ^
 
@@ -128,7 +127,7 @@ get_nonce(URL, Id) ->
 
 ## Developer API
 
-To make it easier for the developer of a new app we have a couple of helper functions that smooth things out when you are gradually adding routes and building out an application
+To make it easier for the developer of a new app we have a couple of helper functions that smooth things out when you are gradually adding routes and building out an application:
 
 * `recompile_routes/0` tells the server to get the routes from the predefined routes module and recompile and save them
 * `toggle_debug/0` toggles a debug switch. If debug is `on` then print statements will dump information into the shell that will help you work out why the router is making the routing decisions it is.
@@ -146,7 +145,7 @@ toggle_debug() ->
 
 ## Callbacks
 
-The router doens't handle the requests itself - the calling process does, so when this router passes back an error handler, that handler needs to be an exported function. (These functions can also be called from within other handlers, as the router doesn't capture the complete granularity of the error space).
+The router doesn't handle the requests itself - the calling process does, so when this router passes back an error handler, that handler needs to be an exported function. (These functions can also be called from within other handlers, as the router doesn't capture the complete granularity of the error space).
 
 ```erlang
 
@@ -187,7 +186,7 @@ init(_Args) ->
 
 ```
 
-These two function heads are where the gen server handles the normal API call messages
+These two function heads are where the gen server handles the normal API call messages:
 
 ```erlang
 
@@ -208,7 +207,7 @@ handle_call({get_nonce, {URL, Id}}, _From, State) ->
 
 ```
 
-These two function heads are where the gen server handles the developer messages
+These two function heads are where the gen server handles the developer messages:
 
 ```erlang
 
@@ -241,7 +240,7 @@ handle_info(_Info, State) ->
 
 ```
 
-Standard do nothing on terminate or code reload
+Standard do nothing on terminate or code reload:
 
 ```erlang
 
