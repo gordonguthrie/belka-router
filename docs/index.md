@@ -35,66 +35,81 @@ You can get by without a router quite easily as we can see in the [Belka Example
 
 if you add the router to your own app - ADD YOUR OWN SALT IN THE CONFIGURATION - otherwise your nonces won't be nonces at all.
 
+## Sequence Diagram
+
+This diagram shows the normal sequence of using the route (the router will be started by the top supervisor in your application). It shows three use cases:
+
+* initiation of the server
+* an invalid incoming request
+* a valid incoming request
+^
+
 ```
-+-------------+                                    +---------+                                      +-------------+ +-------------+ +---------+
-| BelkaServer |                                    | Router  |                                      | ConfigFile  | | RoutesFile  | | Handler |
-+-------------+                                    +---------+                                      +-------------+ +-------------+ +---------+
-       |                                                |                                                  |               |             |
-       |                                                | start                                            |               |             |
-       |                                                |------                                            |               |             |
-       |                                                |     |                                            |               |             |
-       |                                                |<-----                                            |               |             |
-       |                                                |                                                  |               |             |
-       |                                                | read module/function that supplies routes        |               |             |
-       |                                                |------------------------------------------------->|               |             |
-       |                                                |                                                  |               |             |
-       |                                                | read cryptographic salts                         |               |             |
-       |                                                |------------------------------------------------->|               |             |
-       |                                                |                                                  |               |             |
-       |                                                | read list of administrators                      |               |             |
-       |                                                |------------------------------------------------->|               |             |
-       |                                                |                                                  |               |             |
-       |                                                | call module/function to get list of routes       |               |             |
-       |                                                |----------------------------------------------------------------->|             |
-       |                                                |                                                  |               |             |
-       |                                                | compile the routes                               |               |             |
-       |                                                |-------------------                               |               |             |
-       |                                                |                  |                               |               |             |
-       |                                                |<------------------                               |               |             |
-       |                                                |                                                  |               |             |
-       |                                                | open for business                                |               |             |
-       |                                                |------------------                                |               |             |
-       |                                                |                 |                                |               |             |
-       |                                                |<-----------------                                |               |             |
-       |                                                |                                                  |               |             |
-       | please handle this invalid request             |                                                  |               |             |
-       |----------------------------------------------->|                                                  |               |             |
-       |                                                |                                                  |               |             |
-       |                                                | checks if the request is valid                   |               |             |
-       |                                                |-------------------------------                   |               |             |
-       |                                                |                              |                   |               |             |
-       |                                                |<------------------------------                   |               |             |
-       |                                                |                                                  |               |             |
-       |      request invalid please send this response |                                                  |               |             |
-       |<-----------------------------------------------|                                                  |               |             |
-       |                                                |                                                  |               |             |
-       | please handle this valid request               |                                                  |               |             |
-       |----------------------------------------------->|                                                  |               |             |
-       |                                                |                                                  |               |             |
-       |                                                | checks if the request is valid                   |               |             |
-       |                                                |-------------------------------                   |               |             |
-       |                                                |                              |                   |               |             |
-       |                                                |<------------------------------                   |               |             |
-       |                                                |                                                  |               |             |
-       |                                                | please handle this request                       |               |             |
-       |                                                |------------------------------------------------------------------------------->|
-       |                                                |                                                  |               |             |
-       |                                                |                                                  |            here is my reply |
-       |                                                |<-------------------------------------------------------------------------------|
-       |                                                |                                                  |               |             |
-       |                     please serve this response |                                                  |               |             |
-       |<-----------------------------------------------|                                                  |               |             |
-       |                                                |                                                  |               |             |
++-------------+                                        +---------+                                      +-------------+ +---------+ +-----------+
+| BelkaServer |                                        | Router  |                                      | ConfigFile  | | Routes  | | Handlers  |
++-------------+                                        +---------+                                      +-------------+ +---------+ +-----------+
+       |                                                    |                                                  |             |            |
+       |                                                    | start                                            |             |            |
+       |                                                    |------                                            |             |            |
+       |                                                    |     |                                            |             |            |
+       |                                                    |<-----                                            |             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | read module/function that supplies routes        |             |            |
+       |                                                    |------------------------------------------------->|             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | read cryptographic salts                         |             |            |
+       |                                                    |------------------------------------------------->|             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | read list of administrators                      |             |            |
+       |                                                    |------------------------------------------------->|             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | call module/function to get list of routes       |             |            |
+       |                                                    |--------------------------------------------------------------->|            |
+       |                                                    |                                                  |             |            |
+       |                                                    | compile the routes                               |             |            |
+       |                                                    |-------------------                               |             |            |
+       |                                                    |                  |                               |             |            |
+       |                                                    |<------------------                               |             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | open for business                                |             |            |
+       |                                                    |------------------                                |             |            |
+       |                                                    |                 |                                |             |            |
+       |                                                    |<-----------------                                |             |            |
+       |                                                    |                                                  |             |            |
+       | please handle this INVALID request                 |                                                  |             |            |
+       |--------------------------------------------------->|                                                  |             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | checks if the request is valid                   |             |            |
+       |                                                    |-------------------------------                   |             |            |
+       |                                                    |                              |                   |             |            |
+       |                                                    |<------------------------------                   |             |            |
+       |                                                    |                                                  |             |            |
+       |      request invalid please use this error handler |                                                  |             |            |
+       |<---------------------------------------------------|                                                  |             |            |
+       |                                                    |                                                  |             |            |
+       | please do the error handling on my request         |                                                  |             |            |
+       |--------------------------------------------------->|                                                  |             |            |
+       |                                                    |                                                  |             |            |
+       |                  please return this error response |                                                  |             |            |
+       |<---------------------------------------------------|                                                  |             |            |
+       |                                                    |                                                  |             |            |
+       | please handle this VALID request                   |                                                  |             |            |
+       |--------------------------------------------------->|                                                  |             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | checks if the request is valid                   |             |            |
+       |                                                    |-------------------------------                   |             |            |
+       |                                                    |                              |                   |             |            |
+       |                                                    |<------------------------------                   |             |            |
+       |                                                    |                                                  |             |            |
+       |                                                    | please handle this request                       |             |            |
+       |                                                    |---------------------------------------------------------------------------->|
+       |                                                    |                                                  |             |            |
+       |                                                    |                                                  |         here is my reply |
+       |                                                    |<----------------------------------------------------------------------------|
+       |                                                    |                                                  |             |            |
+       |                         please serve this response |                                                  |             |            |
+       |<---------------------------------------------------|                                                  |             |            |
+       |                                                    |                                                  |             |            |
 ```
 
 ## Understanding what the router does

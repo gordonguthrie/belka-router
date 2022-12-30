@@ -1,16 +1,18 @@
-object BelkaServer Router ConfigFile RoutesFile Handler
-Router->Router: start
-Router->ConfigFile: read module/function that supplies routes
-Router->ConfigFile: read cryptographic salts
-Router->ConfigFile: read list of administrators
-Router->RoutesFile: call module/function to get list of routes
-Router->Router: compile the routes
-Router-> Router: open for business
-BelkaServer->Router: please handle this invalid request
-Router->Router: checks if the request is valid
-Router->BelkaServer: request invalid please send this response
-BelkaServer->Router: please handle this valid request
-Router->Router: checks if the request is valid
-Router->Handler: please handle this request
-Handler->Router: here is my reply
+object BelkaServer Router ConfigFile Routes Handlers
+Router->Router:      start
+Router->ConfigFile:  read module/function that supplies routes
+Router->ConfigFile:  read cryptographic salts
+Router->ConfigFile:  read list of administrators
+Router->Routes:      call module/function to get list of routes
+Router->Router:      compile the routes
+Router-> Router:     open for business
+BelkaServer->Router: please handle this INVALID request
+Router->Router:      checks if the request is valid
+Router->BelkaServer: request invalid please use this error handler
+BelkaServer->Router: please do the error handling on my request
+Router->BelkaServer: please return this error response
+BelkaServer->Router: please handle this VALID request
+Router->Router:      checks if the request is valid
+Router->Handlers:    please handle this request
+Handlers->Router:    here is my reply
 Router->BelkaServer: please serve this response
