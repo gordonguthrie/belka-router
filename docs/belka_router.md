@@ -81,11 +81,10 @@ exported for callbacks from within this module
 
 ```
 
-OTP API
-
-see: http://erlang.org/doc/man/gen_server.html#start_link-3
+## Bog standard OTP API - shared by all Erlang/OTP servers
 
 ```erlang
+
 start_link_local() ->
     start_link_local(#{}).
 
@@ -106,7 +105,13 @@ start_link(Args, Opts) ->
 
 ```
 
-# Normal Usage API
+## Normal Usage API
+
+We do two things in normal usage in our app:
+
+* when the Belka server gets a `gemini://` request in, it asks the router what functions we should call to handle the request with `dispatch`
+* when we need to create a URL with a valid nonce, or check that the nonce supplied is valid we have to request that the router generates a nonce.
+^
 
 ```erlang
 
@@ -119,7 +124,13 @@ get_nonce(URL, Id) ->
 
 ```
 
-developer help API
+## Developer API
+
+To make it easier for the developer of a new app we have a couple of helper functions that smooth things out when you are gradually adding routes and building out an application
+
+* `recompile_routes/0` tells the server to get the routes from the predefined routes module and recompile and save them
+* `toggle_debug/0` toggles a debug switch. If debug is `on` then print statements will dump information into the shell that will help you work out why the router is making the routing decisions it is.
+^
 
 ```erlang
 
@@ -131,7 +142,9 @@ toggle_debug() ->
 
 ```
 
-Callbacks
+## Callbacks
+
+The router doens't handle the requests itself - the calling process does, so when this router passes back an error handler, that handler needs to be an exported function. (These functions can also be called from within other handlers, as the router doesn't capture the complete granularity of the error space).
 
 ```erlang
 
@@ -151,6 +164,14 @@ Callbacks
     io:format("in 60 hacker Route is ~p~nVals is ~p~n", [Route, Vals]),
     [<<"60 Criminal Code Section 60 Violation - back off hacker ☠️\r\n"/utf8>>].
 
+```
+
+## The normal internal functions of the Gen Server
+
+`init/1` is called when the gen server starts, it gets a list of configuration items from `sys.config` and then uses them to call the function that defines the routes and compile and store all of them.
+
+```erlang
+
 init(_Args) ->
     true = register(?MODULE, self()),
     {ok, {M, F}} = application:get_env(belka_router, routes),
@@ -161,6 +182,33 @@ init(_Args) ->
     {ok, #state{routes = CompiledRoutes,
                 salt   = Salt,
                 admins = Admins}}.
+
+```
+
+These two function heads are where the gen server handles the normal API call messages
+
+```erlang
+
+handle_call({route, Route}, _From, State) ->
+    Routes = State#state.routes,
+    Salt = State#state.salt,
+    Admins = State#state.admins,
+    debug(State, "handling route for ~p~n", [Route]),
+    Reply = get_dispatch(Route, Routes, Salt, Admins, State#state.debug),
+    debug(State, "Reply is ~p~n", [Reply]),
+    {reply, Reply, State};
+
+handle_call({get_nonce, {URL, Id}}, _From, State) ->
+    Salt = State#state.salt,
+    Nonce = make_nonce(URL, Id, Salt),
+    debug(State, "URL is ~p Nonce is ~p~n", [URL, Nonce]),
+    {reply, Nonce, State};
+
+```
+
+These two function heads are where the gen server handles the developer messages
+
+```erlang
 
 handle_call(toggle_debug, _From, State) ->
     NewState = case State#state.debug of
@@ -173,29 +221,27 @@ handle_call(recompile_routes, _From, State) ->
     {ok, {M, F}} = application:get_env(belka_router, routes),
     Routes = apply(M, F, []),
     CompiledRoutes = compile_routes(Routes),
-    io:format("Recompiled Routes are ~p~n", [CompiledRoutes]),
+    debug(State, "Recompiled Routes are ~p~n", [CompiledRoutes]),
     NewState = State#state{routes = CompiledRoutes},
-    {reply, ok, NewState};
+    {reply, ok, NewState}.
 
-handle_call({get_nonce, {URL, Id}}, _From, State) ->
-    Salt = State#state.salt,
-    Nonce = make_nonce(URL, Id, Salt),
-    debug(State, "URL is ~p Nonce is ~p~n", [URL, Nonce]),
-    {reply, Nonce, State};
-handle_call({route, Route}, _From, State) ->
-    Routes = State#state.routes,
-    Salt = State#state.salt,
-    Admins = State#state.admins,
-    debug(State, "handling route for ~p~n", [Route]),
-    Reply = get_dispatch(Route, Routes, Salt, Admins, State#state.debug),
-    debug(State, "Reply is ~p~n", [Reply]),
-    {reply, Reply, State}.
+```
+
+We do nothing on either cast of info messages.
+
+```erlang
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(_Info, State) ->
     {noreply, State}.
+
+```
+
+standard do nothing on terminate or code reload
+
+```erlang
 
 terminate(_Reason, _State) ->
     ok.
@@ -215,6 +261,17 @@ debug(_,                     Text, Args) -> io:format(Text, Args).
 
 get_dispatch(Route, Routes, Salt, Admins, Debug) ->
     match_route(Routes, Route, Salt, Admins, Debug).
+
+```
+
+This function is the heavy lifting of the router. An incoming message which has had its URL parsed down to components is checked in turn against each route defined in the list of routes. There are three exit routes:
+
+* a path can match perfectly - exit with a handler
+* a path can match but some other attribute is wrong (eg good path, but not logged in, good path but not administrator, good path but bad nonce) in which case the search ends with an error
+* no paths match in which case an ***Aread `51`*** error is thrown
+^
+
+```erlang
 
 match_route([], _, _Salt, _Admins, Debug) ->
     debug(Debug, "no routes match 51~n", []),
@@ -253,6 +310,35 @@ match_route([H | T], Route, Salt, Admins, Debug) ->
             end
     end.
 
+```
+
+The `match_path` function checks if:
+
+* the path matches outright
+* the path matches subject to nonce checks
+* the path doens't match outwright
+^
+It descends the segments in the path and match definitions from the top.
+
+```erlang
+
+match_path([],        [],                Acc) -> {match, Acc};
+match_path([H | T1],  [H | T2],          Acc) -> match_path(T1, T2, Acc);
+match_path([H | T1],  [{Name, []} | T2], Acc) -> match_path(T1, T2, [{Name, H} | Acc]);
+match_path([_H | []], [nonce | []],      Acc) -> {check_nonce, Acc};
+match_path(_,         _,                _Acc) -> no_match.
+
+```
+
+There are two sorts of nonce checks:
+
+* normal user nonces
+* admin user nonces
+^
+So this function has to peform the `is_admin` check too
+
+```erlang
+
 handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins, Debug) ->
     case Id of
         no_identity ->
@@ -285,16 +371,21 @@ handle_nonce_check(GotPath, Id, MF, Vals, Salt, IsAdmin, Admins, Debug) ->
             end
     end.
 
+```
+
+This function walks down the list of administrators and compares the person attempting to access the admin pages one by one.
+
+```erlang
 
 check_admin([],       _Id) -> {invalid, { {belka_router, '60 (hacker)'}, []}};
 check_admin([Id | _T], Id) -> is_admin;
 check_admin([_H | T],  Id) -> check_admin(T, Id).
 
-match_path([],        [],                Acc) -> {match, Acc};
-match_path([H | T1],  [H | T2],          Acc) -> match_path(T1, T2, Acc);
-match_path([H | T1],  [{Name, []} | T2], Acc) -> match_path(T1, T2, [{Name, H} | Acc]);
-match_path([_H | []], [nonce | []],      Acc) -> {check_nonce, Acc};
-match_path(_,         _,                _Acc) -> no_match.
+```
+
+The design goal here is to keep the route definition as simple and readable as possible so that the developer can easily reason about the plumbing. To that end there is a compiler that simply transforms the readable representation of a route to a more detailed data structure that is more useful to check against.
+
+```erlang
 
 compile_routes(Routes) -> [compile_route(X) || X <- Routes].
 
@@ -315,6 +406,23 @@ compile_path(Path, NeedsLogin) ->
 make_seg(":" ++ Seg) -> {Seg, []};
 make_seg(X)          -> X.
 
+```
+
+The requirements for the nonce are threefold:
+
+* its is unique for the path
+* it is unique for the user
+* it is unique for the site
+^
+so we generate a hash using:
+
+* the path
+* the user's public key
+* a site specific salt
+^
+We make it URL safe too
+
+```erlang
 make_nonce(URL, #{key := K}, Salt) ->
     Nonce = crypto:hash(md5, list_to_binary([Salt, URL, integer_to_list(K)])),
     SafeNonce = binary:encode_hex(Nonce),

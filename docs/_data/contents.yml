@@ -3,9 +3,9 @@ toc:
     subfolderitems:
       - page: belka_router.erl
         url:  ./belka_router.html
-      - page: example.erl
-        url:  ./example.html
+      - page: example_handlers.erl
+        url:  ./example_handlers.html
+      - page: example_routes.erl
+        url:  ./example_routes.html
       - page: index.erlang_architecture
         url:  ./index.html
-      - page: routes.erl
-        url:  ./routes.html

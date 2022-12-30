@@ -1,4 +1,15 @@
--module(example).
+```erlang
+-module(example_handlers).
+
+```
+
+## Overview
+
+These are example handlers - each one is defined in the routing table returned by `example_routes:get_routes/0`
+
+Best to read this side by side with `example_routes`.
+
+```erlang
 
 -export([
 			root/2,
@@ -6,6 +17,12 @@
 			admin/2,
 			admin_action/2
 		]).
+
+```
+
+## Public API
+
+```erlang
 
 root(Route, Vals) ->
 	#{path := Path} = Route,
@@ -33,3 +50,5 @@ admin_action(Route, Vals) ->
 		"20 text/gemini\r\n",
 		"Shake some action\r\n"
 	].
+
+```
