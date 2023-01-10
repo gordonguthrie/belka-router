@@ -123,7 +123,7 @@ This diagram shows the normal sequence of using the route (the router will be st
        |<-----------------------------------------------------------|                                                                        |             |            |
        |                                                            |                                                                        |             |            |
 
-%```
+```
 
 ## Understanding what the router does
 
