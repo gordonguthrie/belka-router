@@ -10,7 +10,7 @@ For an example of a Belka Server that uses this router please see [Vega and Alta
 
 ## Architecture Documents
 
-The [architectural documentation](https://gordonguthrie.github.io/belka_router) for this example is built with [Literate Code Reader](https://gordonguthrie.github.io/literatecodereader)
+The [architectural documentation](https://gordonguthrie.github.io/belka-router) for this example is built with [Literate Code Reader](https://gordonguthrie.github.io/literatecodereader)
 
 
 ## Other Belka Family Members
