@@ -8,11 +8,13 @@ This application takes this data structure defined in the module `example_routes
 
 ```erlang
 
-{"/home/:user",  ?USERLOGIN,   {example_handlers, home}},
+{"/home/:user", ?USERLOGIN, {example_handlers, home}},
 
 ```
 
 compiles it into an internal data structure and then matches incoming `gemini://` requests and against that data structure.
+
+NOTE: the module `example_routes` is the routing table for the site `localhost`, you might have multiple sites on the same Belka server each with their own routing tables - `belka_router` handles that for you too.
 
 If the routes doesn't find a match it returns the appropriate error message to the client and if it does if processes the request and calls the handler declared in the route. In this case a function called `home/2` in the module `example_handlers`:
 
