@@ -1,17 +1,21 @@
+https://textart.io/sequence
+
 object BelkaServer Router ConfigFile Routes Handlers
 Router->Router:      start
-Router->ConfigFile:  read module/function that supplies routes
+Router->ConfigFile:  read list of module/function that supplies routes for each site
 Router->ConfigFile:  read cryptographic salts
 Router->ConfigFile:  read list of administrators
-Router->Routes:      call module/function to get list of routes
+Router->Routes:      loop over sites calling module/function to get list of routes for each site
 Router->Router:      compile the routes
 Router-> Router:     open for business
-BelkaServer->Router: please handle this INVALID request
+BelkaServer->Router: please handle this INVALID request on this site
+Router->Router:      look up the routes for this site
 Router->Router:      checks if the request is valid
 Router->BelkaServer: request invalid please use this error handler
 BelkaServer->Router: please do the error handling on my request
 Router->BelkaServer: please return this error response
-BelkaServer->Router: please handle this VALID request
+BelkaServer->Router: please handle this VALID request request on this site
+Router->Router:      look up the routes for this site
 Router->Router:      checks if the request is valid
 Router->Handlers:    please handle this request
 Handlers->Router:    here is my reply
